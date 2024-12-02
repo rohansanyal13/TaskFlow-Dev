@@ -8,9 +8,9 @@ import { Button } from './components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './components/ui/dialog';
 import { Plus } from 'lucide-react';
 import { TaskForm } from './components/task/TaskForm';
-import { TaskManager, SortConfig } from './services/TaskManager';
-import { Task } from './models/Task';
-import { TaskProps } from './models/Task';
+import { TaskManager } from './services/TaskManager';
+import { Task, TaskProps } from './models/Task';
+import { SortConfig, SortOption } from './utils/types';
 import {
   Select,
   SelectContent,
@@ -19,32 +19,50 @@ import {
   SelectValue,
 } from "./components/ui/select";
 
-export type SortOption = 'dueDate' | 'priority' | 'status' | 'createdAt' | 'title';
-
+// Define the default sort configuration
 const defaultSortConfig: SortConfig = {
-  order: 'asc', // Specify a default order
-  field: 'priority', // Specify a default field
+  field: 'dueDate',
+  order: 'asc',
   priorityOrder: { HIGH: 3, MEDIUM: 2, LOW: 1 },
-  statusOrder: { TODO: 1, IN_PROGRESS: 2, DONE: 3 },
+  statusOrder: { TODO: 1, IN_PROGRESS: 2, COMPLETED: 3 }
 };
 
 const TaskFlow: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const [taskManager] = useState(() => new TaskManager());
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [sortBy, setSortBy] = useState<SortOption>('dueDate');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  
+  // Replace individual sort states with a single sortConfig state
+  const [sortConfig, setSortConfig] = useState<SortConfig>(defaultSortConfig);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
+  // Update tasks when sort configuration changes
   useEffect(() => {
-    setTasks(taskManager.getSortedTasks(sortBy, sortDirection, defaultSortConfig));
-  }, [sortBy, sortDirection, taskManager]);
+    setTasks(taskManager.getSortedTasks(sortConfig));
+  }, [sortConfig, taskManager]);
 
+  // Handler for sort field changes
+  const handleSortFieldChange = (field: SortOption) => {
+    setSortConfig(prevConfig => ({
+      ...prevConfig,
+      field
+    }));
+  };
+
+  // Handler for toggling sort direction
+  const toggleSortDirection = () => {
+    setSortConfig(prevConfig => ({
+      ...prevConfig,
+      order: prevConfig.order === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  // Update task handlers to use the new sortConfig
   const handleCreateTask = (taskProps: Omit<TaskProps, 'id'>) => {
     const task = taskManager.createTask(taskProps);
     if (task) {
-      setTasks(taskManager.getSortedTasks(sortBy, sortDirection, defaultSortConfig));
+      setTasks(taskManager.getSortedTasks(sortConfig));
       setIsFormOpen(false);
     }
   };
@@ -56,7 +74,7 @@ const TaskFlow: React.FC = () => {
 
   const handleDeleteTask = (id: string) => {
     if (taskManager.deleteTask(id)) {
-      setTasks(taskManager.getSortedTasks(sortBy, sortDirection, defaultSortConfig));
+      setTasks(taskManager.getSortedTasks(sortConfig));
     }
   };
 
@@ -64,15 +82,11 @@ const TaskFlow: React.FC = () => {
     if (selectedTask) {
       const updated = taskManager.updateTask(selectedTask.id, updates);
       if (updated) {
-        setTasks(taskManager.getSortedTasks(sortBy, sortDirection, defaultSortConfig));
+        setTasks(taskManager.getSortedTasks(sortConfig));
         setSelectedTask(null);
         setIsFormOpen(false);
       }
     }
-  };
-
-  const toggleSortDirection = () => {
-    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
   };
 
   if (!isAuthenticated) {
@@ -95,8 +109,8 @@ const TaskFlow: React.FC = () => {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <Select
-                value={sortBy}
-                onValueChange={(value: SortOption) => setSortBy(value)}
+                value={sortConfig.field}
+                onValueChange={handleSortFieldChange}
               >
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="Sort by..." />
@@ -116,7 +130,7 @@ const TaskFlow: React.FC = () => {
                 onClick={toggleSortDirection}
                 className="w-10"
               >
-                {sortDirection === 'asc' ? '↑' : '↓'}
+                {sortConfig.order === 'asc' ? '↑' : '↓'}
               </Button>
             </div>
 
@@ -150,6 +164,7 @@ const TaskFlow: React.FC = () => {
           tasks={tasks}
           onEdit={handleUpdateTask}
           onDelete={handleDeleteTask}
+          sortConfig={sortConfig}
         />
       </main>
     </div>

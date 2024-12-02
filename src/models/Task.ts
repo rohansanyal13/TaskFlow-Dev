@@ -20,6 +20,7 @@ export class Task {
     public tags: string[];
     public createdAt: Date;
     public updatedAt: Date;
+  static dueDate: any;
 
     constructor(props: TaskProps) {
         this.id = props.id || crypto.randomUUID();

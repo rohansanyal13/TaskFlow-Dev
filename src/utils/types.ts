@@ -1,6 +1,6 @@
 import { Task } from '../models/Task';
 
-export type SortField = 'dueDate' | 'priority' | 'status' | 'createdAt' | 'title';
+export type SortOption = 'dueDate' | 'priority' | 'status' | 'createdAt' | 'title';
 export type SortOrder = 'asc' | 'desc';
 
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'COMPLETED';
@@ -12,8 +12,6 @@ export interface SortConfig {
     priorityOrder: { [key: string]: number };
     statusOrder: { [key: string]: number };
 }
-  
-export type SortOption = 'dueDate' | 'priority' | 'status' | 'createdAt' | 'title';
 
 export interface ValidationError {
     field: string;

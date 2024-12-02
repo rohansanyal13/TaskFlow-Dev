@@ -1,9 +1,9 @@
 import { Task, TaskProps } from '../models/Task';
 import { ErrorHandler } from '../utils/ErrorHandler';
-import { SortConfig, TaskPriority } from '../utils/types';
+import { SortConfig, TaskPriority, TaskStatus } from '../utils/types';
 
 const yesterday = new Date();
-yesterday.setDate(yesterday.getDate() -1);
+yesterday.setDate(yesterday.getDate() - 1);
 
 export class TaskManager {
     private tasks: Map<string, Task> = new Map();
@@ -109,7 +109,7 @@ export class TaskManager {
         return Array.from(this.tasks.values());
     }
 
-    getSortedTasks(sortBy: string, sortDirection: string, sortConfig: SortConfig): Task[] {
+    getSortedTasks(sortConfig: SortConfig): Task[] {
         try {
             const tasks = this.getAllTasks();
             const { field, order } = sortConfig;
@@ -117,26 +117,53 @@ export class TaskManager {
             return tasks.sort((a, b) => {
                 let comparison = 0;
 
-                if (field === 'dueDate') {
-                    comparison = a.dueDate.getTime() - b.dueDate.getTime();
-                } else if (field === 'priority') {
-                    const priorityOrder: Record<TaskPriority, number> = {
-                        HIGH: 0,
-                        MEDIUM: 1,
-                        LOW: 2
-                    };
-                    comparison = priorityOrder[a.priority] - priorityOrder[b.priority];
+                switch (field) {
+                    case 'dueDate':
+                    case 'createdAt':
+                        // Handle date comparisons
+                        const aDate = field === 'dueDate' ? a.dueDate : a.createdAt;
+                        const bDate = field === 'dueDate' ? b.dueDate : b.createdAt;
+                        comparison = aDate.getTime() - bDate.getTime();
+                        break;
+
+                    case 'priority':
+                        // Use the priorityOrder from sortConfig
+                        const priorityOrder = {
+                            HIGH: 3,
+                            MEDIUM: 2,
+                            LOW: 1
+                        };
+                        comparison = priorityOrder[a.priority] - priorityOrder[b.priority];
+                        break;
+
+                    case 'status':
+                        // Use the statusOrder from sortConfig
+                        const statusOrder = {
+                            TODO: 1,
+                            IN_PROGRESS: 2,
+                            COMPLETED: 3
+                        };
+                        comparison = statusOrder[a.status as TaskStatus] - statusOrder[b.status as TaskStatus];
+                        break;
+
+                    case 'title':
+                        // Case-insensitive string comparison
+                        comparison = a.title.toLowerCase().localeCompare(b.title.toLowerCase());
+                        break;
+
+                    default:
+                        // Default to sorting by createdAt if an unknown field is provided
+                        comparison = a.createdAt.getTime() - b.createdAt.getTime();
                 }
 
+                // Apply sort direction
                 return order === 'asc' ? comparison : -comparison;
             });
         } catch (error) {
             if (error instanceof Error) {
-                this.errorHandler.addError('Error sorting tasks');
+                this.errorHandler.addError('Error sorting tasks: ' + error.message);
             }
-            return this.getAllTasks();
+            return this.getAllTasks(); // Return unsorted tasks as fallback
         }
     }
 }
-
-export type { SortConfig };
