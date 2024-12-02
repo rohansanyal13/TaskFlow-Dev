@@ -1,6 +1,6 @@
-// src/services/TaskManager.ts
 import { Task, TaskProps } from '../models/Task';
 import { ErrorHandler } from '../utils/ErrorHandler';
+import { SortConfig, TaskPriority } from '../utils/types';
 
 export class TaskManager {
     private tasks: Map<string, Task> = new Map();
@@ -83,28 +83,27 @@ export class TaskManager {
         return Array.from(this.tasks.values());
     }
 
-    getTasksByView(view: 'LIST' | 'KANBAN' | 'SPRINT'): Task[] {
+    getSortedTasks(sortBy: string, sortDirection: string, sortConfig: SortConfig): Task[] {
         try {
             const tasks = this.getAllTasks();
-            switch (view) {
-                case 'LIST':
-                    return tasks.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
-                case 'KANBAN':
-                    return tasks.sort((a, b) => {
-                        const statusOrder = { TODO: 0, IN_PROGRESS: 1, COMPLETED: 2 };
-                        return statusOrder[a.status] - statusOrder[b.status];
-                    });
-                case 'SPRINT':
-                    return tasks.sort((a, b) => {
-                        if (a.priority === b.priority) {
-                            return a.dueDate.getTime() - b.dueDate.getTime();
-                        }
-                        const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
-                        return priorityOrder[a.priority] - priorityOrder[b.priority];
-                    });
-                default:
-                    return tasks;
-            }
+            const { field, order } = sortConfig;
+
+            return tasks.sort((a, b) => {
+                let comparison = 0;
+
+                if (field === 'dueDate') {
+                    comparison = a.dueDate.getTime() - b.dueDate.getTime();
+                } else if (field === 'priority') {
+                    const priorityOrder: Record<TaskPriority, number> = {
+                        HIGH: 0,
+                        MEDIUM: 1,
+                        LOW: 2
+                    };
+                    comparison = priorityOrder[a.priority] - priorityOrder[b.priority];
+                }
+
+                return order === 'asc' ? comparison : -comparison;
+            });
         } catch (error) {
             if (error instanceof Error) {
                 this.errorHandler.addError('Error sorting tasks');
@@ -113,3 +112,5 @@ export class TaskManager {
         }
     }
 }
+
+export type { SortConfig };

@@ -2,11 +2,13 @@ import React from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '@/components/ui/button';
 import { 
-  LayoutGrid, 
-  ListTodo, 
+  ArrowDownAZ,
+  ArrowUpAZ,
+  Calendar,
   LogOut, 
   Plus,
-  Menu
+  Menu,
+  Star
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -14,85 +16,96 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { SortConfig } from '../../utils/types';
 
 interface LayoutProps {
   children: React.ReactNode;
-  onViewChange: (view: 'LIST' | 'KANBAN' | 'SPRINT') => void;
+  onSortChange: (sortConfig: SortConfig) => void;
   onCreateTask: () => void;
-  currentView: 'LIST' | 'KANBAN' | 'SPRINT';
+  currentSort: SortConfig;
 }
 
 export const Layout: React.FC<LayoutProps> = ({
   children,
-  onViewChange,
+  onSortChange,
   onCreateTask,
-  currentView
+  currentSort
 }) => {
   const { logout } = useAuth();
 
-  const viewIcons = {
-    LIST: <ListTodo className="h-5 w-5" />,
-    KANBAN: <LayoutGrid className="h-5 w-5" />,
-    SPRINT: <Menu className="h-5 w-5" />
+  const handleSortChange = (field: SortConfig['field']) => {
+    if (currentSort.field === field) {
+      // Toggle order if same field
+      onSortChange({
+        field,
+        order: currentSort.order === 'asc' ? 'desc' : 'asc',
+        priorityOrder: {},
+        statusOrder: {}
+      });
+    } else {
+      // Default to ascending for new field
+      onSortChange({
+        field,
+        order: 'asc',
+        priorityOrder: {},
+        statusOrder: {}
+      });
+    }
+  };
+
+  const getSortIcon = (field: SortConfig['field']) => {
+    if (currentSort.field !== field) return null;
+    return currentSort.order === 'asc' ? <ArrowUpAZ className="h-4 w-4" /> : <ArrowDownAZ className="h-4 w-4" />;
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navbar */}
       <nav className="border-b bg-white px-4 py-3 shadow-sm">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center space-x-8">
             <h1 className="text-xl font-semibold text-gray-900">TaskFlow</h1>
             
-            {/* View Switcher for Desktop */}
+            {/* Sort Controls for Desktop */}
             <div className="hidden md:flex space-x-2">
               <Button
-                variant={currentView === 'LIST' ? 'default' : 'ghost'}
+                variant={currentSort.field === 'dueDate' ? 'default' : 'ghost'}
                 size="sm"
-                onClick={() => onViewChange('LIST')}
+                onClick={() => handleSortChange('dueDate')}
               >
-                <ListTodo className="mr-2 h-4 w-4" />
-                List
+                <Calendar className="mr-2 h-4 w-4" />
+                Due Date
+                {getSortIcon('dueDate')}
               </Button>
               <Button
-                variant={currentView === 'KANBAN' ? 'default' : 'ghost'}
+                variant={currentSort.field === 'priority' ? 'default' : 'ghost'}
                 size="sm"
-                onClick={() => onViewChange('KANBAN')}
+                onClick={() => handleSortChange('priority')}
               >
-                <LayoutGrid className="mr-2 h-4 w-4" />
-                Kanban
-              </Button>
-              <Button
-                variant={currentView === 'SPRINT' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => onViewChange('SPRINT')}
-              >
-                <Menu className="mr-2 h-4 w-4" />
-                Sprint
+                <Star className="mr-2 h-4 w-4" />
+                Priority
+                {getSortIcon('priority')}
               </Button>
             </div>
           </div>
 
           <div className="flex items-center space-x-4">
-            {/* Mobile View Switcher */}
+            {/* Mobile Sort Controls */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild className="md:hidden">
                 <Button variant="outline" size="icon">
-                  {viewIcons[currentView]}
+                  {currentSort.field === 'dueDate' ? <Calendar className="h-5 w-5" /> : <Star className="h-5 w-5" />}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onViewChange('LIST')}>
-                  <ListTodo className="mr-2 h-4 w-4" />
-                  List View
+                <DropdownMenuItem onClick={() => handleSortChange('dueDate')}>
+                  <Calendar className="mr-2 h-4 w-4" />
+                  Sort by Due Date
+                  {getSortIcon('dueDate')}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onViewChange('KANBAN')}>
-                  <LayoutGrid className="mr-2 h-4 w-4" />
-                  Kanban Board
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onViewChange('SPRINT')}>
-                  <Menu className="mr-2 h-4 w-4" />
-                  Sprint View
+                <DropdownMenuItem onClick={() => handleSortChange('priority')}>
+                  <Star className="mr-2 h-4 w-4" />
+                  Sort by Priority
+                  {getSortIcon('priority')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -139,7 +152,6 @@ export const Layout: React.FC<LayoutProps> = ({
         </div>
       </nav>
 
-      {/* Main Content */}
       <main className="mx-auto max-w-7xl p-4 md:p-6 lg:p-8">
         {children}
       </main>

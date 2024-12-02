@@ -1,19 +1,21 @@
-// src/components/layout/Header.tsx
 import React from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../ui/button';
 import { 
   LayoutGrid, 
-  LogOut, 
-  Moon,
-  Settings
+  LogOut,
+  Settings,
+  User
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 
-export const Header: React.FC<{
-  view: 'LIST' | 'KANBAN' | 'SPRINT';
-  onViewChange: (view: 'LIST' | 'KANBAN' | 'SPRINT') => void;
-}> = ({ view, onViewChange }) => {
-  const { logout } = useAuth();
+export const Header: React.FC = () => {
+  const { logout, user } = useAuth();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -24,26 +26,30 @@ export const Header: React.FC<{
         </div>
 
         <div className="ml-auto flex items-center gap-4">
-          <select
-            value={view}
-            onChange={(e) => onViewChange(e.target.value as 'LIST' | 'KANBAN' | 'SPRINT')}
-            className="rounded-md border border-border bg-secondary px-3 py-1.5 text-sm text-secondary-foreground"
-          >
-            <option value="LIST">List View</option>
-            <option value="KANBAN">Kanban View</option>
-            <option value="SPRINT">Sprint View</option>
-          </select>
-    
-          
-          {/* Updated Logout Button */}
-          <Button 
-            variant="destructive" 
-            onClick={logout}
-            className="flex items-center gap-2"
-          >
-            <LogOut className="h-4 w-4" />
-            <span>Logout</span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <User className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              {user && (
+                <div className="p-2">
+                  <p className="text-sm font-medium">{user.email}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Last login: {new Date(user.lastLogin).toLocaleDateString()}
+                  </p>
+                </div>
+              )}
+              <DropdownMenuItem
+                onClick={logout}
+                className="text-destructive focus:text-destructive"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>

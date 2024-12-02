@@ -8,26 +8,43 @@ import { Button } from './components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './components/ui/dialog';
 import { Plus } from 'lucide-react';
 import { TaskForm } from './components/task/TaskForm';
-import { TaskManager } from './services/TaskManager';
+import { TaskManager, SortConfig } from './services/TaskManager';
 import { Task } from './models/Task';
 import { TaskProps } from './models/Task';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./components/ui/select";
+
+export type SortOption = 'dueDate' | 'priority' | 'status' | 'createdAt' | 'title';
+
+const defaultSortConfig: SortConfig = {
+  order: 'asc', // Specify a default order
+  field: 'priority', // Specify a default field
+  priorityOrder: { HIGH: 3, MEDIUM: 2, LOW: 1 },
+  statusOrder: { TODO: 1, IN_PROGRESS: 2, DONE: 3 },
+};
 
 const TaskFlow: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const [taskManager] = useState(() => new TaskManager());
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [view, setView] = useState<'LIST' | 'KANBAN' | 'SPRINT'>('LIST');
+  const [sortBy, setSortBy] = useState<SortOption>('dueDate');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   useEffect(() => {
-    setTasks(taskManager.getTasksByView(view));
-  }, [view]);
+    setTasks(taskManager.getSortedTasks(sortBy, sortDirection, defaultSortConfig));
+  }, [sortBy, sortDirection, taskManager]);
 
   const handleCreateTask = (taskProps: Omit<TaskProps, 'id'>) => {
     const task = taskManager.createTask(taskProps);
     if (task) {
-      setTasks(taskManager.getTasksByView(view));
+      setTasks(taskManager.getSortedTasks(sortBy, sortDirection, defaultSortConfig));
       setIsFormOpen(false);
     }
   };
@@ -39,7 +56,7 @@ const TaskFlow: React.FC = () => {
 
   const handleDeleteTask = (id: string) => {
     if (taskManager.deleteTask(id)) {
-      setTasks(taskManager.getTasksByView(view));
+      setTasks(taskManager.getSortedTasks(sortBy, sortDirection, defaultSortConfig));
     }
   };
 
@@ -47,11 +64,15 @@ const TaskFlow: React.FC = () => {
     if (selectedTask) {
       const updated = taskManager.updateTask(selectedTask.id, updates);
       if (updated) {
-        setTasks(taskManager.getTasksByView(view));
+        setTasks(taskManager.getSortedTasks(sortBy, sortDirection, defaultSortConfig));
         setSelectedTask(null);
         setIsFormOpen(false);
       }
     }
+  };
+
+  const toggleSortDirection = () => {
+    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
   };
 
   if (!isAuthenticated) {
@@ -60,7 +81,7 @@ const TaskFlow: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header view={view} onViewChange={setView} />
+      <Header />
       
       <main className="container mx-auto px-4 pt-24 pb-16">
         <div className="mb-8 flex items-center justify-between">
@@ -71,29 +92,58 @@ const TaskFlow: React.FC = () => {
             </p>
           </div>
 
-          <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Task
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Select
+                value={sortBy}
+                onValueChange={(value: SortOption) => setSortBy(value)}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Sort by..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dueDate">Due Date</SelectItem>
+                  <SelectItem value="priority">Priority</SelectItem>
+                  <SelectItem value="status">Status</SelectItem>
+                  <SelectItem value="createdAt">Created Date</SelectItem>
+                  <SelectItem value="title">Title</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={toggleSortDirection}
+                className="w-10"
+              >
+                {sortDirection === 'asc' ? '↑' : '↓'}
               </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>
-                  {selectedTask ? 'Edit Task' : 'Create New Task'}
-                </DialogTitle>
-              </DialogHeader>
-              <TaskForm
-                initialValues={selectedTask || undefined}
-                onSubmit={selectedTask ? handleSaveTask : handleCreateTask}
-                onCancel={() => {
-                  setSelectedTask(null);
-                  setIsFormOpen(false);
-                }}
-              />
-            </DialogContent>
-          </Dialog>
+            </div>
+
+            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Task
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>
+                    {selectedTask ? 'Edit Task' : 'Create New Task'}
+                  </DialogTitle>
+                </DialogHeader>
+                <TaskForm
+                  initialValues={selectedTask || undefined}
+                  onSubmit={selectedTask ? handleSaveTask : handleCreateTask}
+                  onCancel={() => {
+                    setSelectedTask(null);
+                    setIsFormOpen(false);
+                  }}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         <TaskList
