@@ -43,6 +43,12 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete }) =>
     }
   };
 
+  const getNextDayDate = (date: Date) => {
+    const nextDay = new Date(date);
+    nextDay.setDate(date.getDate() + 1);
+    return nextDay.toLocaleDateString();
+  };
+
   return (
     <Card className="group relative overflow-hidden border-border/50 bg-card p-5 transition-all hover:border-border">
       <div className="flex flex-col gap-4">
@@ -55,7 +61,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete }) =>
           <span className="flex items-center gap-1.5">
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <span className="text-muted-foreground">
-              {new Date(task.dueDate).toLocaleDateString()}
+              {getNextDayDate(task.dueDate)}
             </span>
           </span>
 

@@ -2,6 +2,9 @@ import { Task, TaskProps } from '../models/Task';
 import { ErrorHandler } from '../utils/ErrorHandler';
 import { SortConfig, TaskPriority } from '../utils/types';
 
+const yesterday = new Date();
+yesterday.setDate(yesterday.getDate() -1);
+
 export class TaskManager {
     private tasks: Map<string, Task> = new Map();
     private errorHandler: ErrorHandler;
@@ -15,6 +18,7 @@ export class TaskManager {
             const task = new Task(props);
             this.validateTask(task);
             this.tasks.set(task.id, task);
+            //task.dueDate.setDate(task.dueDate.getDate() + 1);
             return task;
         } catch (error) {
             if (error instanceof Error) {
@@ -23,6 +27,8 @@ export class TaskManager {
             return null;
         }
     }
+
+
 
     private validateTask(task: Task): void {
         if (!task.title || task.title.length === 0) {
@@ -34,7 +40,7 @@ export class TaskManager {
         if (task.description.length > 500) {
             throw new Error('Task description cannot exceed 500 characters');
         }
-        if (task.dueDate < new Date()) {
+        if (task.dueDate  < yesterday) {
             throw new Error('Due date cannot be in the past');
         }
         if (task.tags.length > 10) {
@@ -53,15 +59,35 @@ export class TaskManager {
         return task;
     }
 
-    updateTask(id: string, updates: Partial<Task>): Task | null {
+    updateTask(id: string, updates: Partial<Omit<TaskProps, 'id'>>): Task | null {
         try {
-            const task = this.tasks.get(id);
-            if (!task) {
+            const existingTask = this.tasks.get(id);
+            if (!existingTask) {
                 throw new Error('Task not found');
             }
-            const updatedTask = { ...task, ...updates, updatedAt: new Date() } as Task;
+    
+            // Create new task props by combining existing and updated properties
+            const updatedProps: TaskProps = {
+                id: existingTask.id,
+                title: updates.title ?? existingTask.title,
+                description: updates.description ?? existingTask.description,
+                dueDate: updates.dueDate ? new Date(updates.dueDate) : new Date(existingTask.dueDate),
+                priority: updates.priority ?? existingTask.priority,
+                status: updates.status ?? existingTask.status,
+                tags: updates.tags ?? [...existingTask.tags],
+                createdAt: existingTask.createdAt,
+                updatedAt: new Date()
+            };
+    
+            // Create a new Task instance with the updated properties
+            const updatedTask = new Task(updatedProps);
+            
+            // Validate the new task
             this.validateTask(updatedTask);
+            
+            // Save the updated task
             this.tasks.set(id, updatedTask);
+            
             return updatedTask;
         } catch (error) {
             if (error instanceof Error) {

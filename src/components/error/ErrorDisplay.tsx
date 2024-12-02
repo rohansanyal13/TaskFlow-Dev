@@ -8,7 +8,7 @@ export const ErrorDisplay: React.FC = () => {
   const errorHandler = ErrorHandler.getInstance();
 
   useEffect(() => {
-    const unsubscribe = errorHandler.subscribe(newErrors => {
+    const unsubscribe = errorHandler.subscribe((newErrors) => {
       setErrors(newErrors);
     });
 
@@ -22,15 +22,20 @@ export const ErrorDisplay: React.FC = () => {
   if (errors.length === 0) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 space-y-2 min-w-[300px] max-w-[500px]">
+    <div
+      className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[9999] space-y-2 min-w-[300px] max-w-[500px]"
+      style={{ pointerEvents: 'none' }} // Prevent accidental interaction with the background
+    >
       {errors.map((error) => (
-        <Alert key={error.id} variant="destructive" className="relative">
+        <Alert
+          key={error.id}
+          variant="destructive"
+          className="relative pointer-events-auto"
+        >
           <AlertTitle className="text-lg">
             {error.field ? `${error.field} Error` : 'Error'}
           </AlertTitle>
-          <AlertDescription className="text-sm">
-            {error.message}
-          </AlertDescription>
+          <AlertDescription className="text-sm">{error.message}</AlertDescription>
           <button
             onClick={() => handleDismiss(error.id)}
             className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
